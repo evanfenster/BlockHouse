@@ -4,8 +4,11 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
+    using SafeMath for uint256;
+
     // Define roles
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
@@ -79,7 +82,7 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
         _setupRole(ISSUER_ROLE, msg.sender);
 
         // Transfers 100% of the bonds to the address deploying this contract.
-        _mint(this, maxSupply);
+        _mint(msg.sender, maxSupply);
     }
 
     // this is used to add those interest values to the interestClaimable mapping for users holding the bonds at the time of the interest payment
@@ -118,7 +121,7 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
         require(bonds <= balanceOf(msg.sender), "Not enough bonds to redeem");
 
         _burn(msg.sender, bonds);
-        require(paymentToken.transfer(msg.sender, bonds.mul(par)), "Transfer failed");
+        require(ERC20(paymentToken).transfer(msg.sender, bonds.mul(par)), "Transfer failed");
     }
 
     // sets the user's auto-claim preference
@@ -144,7 +147,7 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
 
     // internal function to transfer interest
     function _transferInterest(address recipient, uint256 interest) internal {
-        require(paymentToken.transfer(recipient, interest), "Transfer failed");
+        require(ERC20(paymentToken).transfer(recipient, interest), "Transfer failed");
         emit InterestClaimed(recipient, interest);
     }
 }
