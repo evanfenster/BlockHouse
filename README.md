@@ -1,4 +1,4 @@
-# BlockHouse
+# Tokenized US Treasury Bonds
 A smart contract that represents a tokenized US treasury bond. 
 
 Includes the following features:
