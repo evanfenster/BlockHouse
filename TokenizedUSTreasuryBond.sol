@@ -90,9 +90,14 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
     function interestPayment() public interestValid onlyRole(ISSUER_ROLE) {
 
         for (uint256 i = 0; i < bondHolders.length; i++) {
+            // get the address of the bond holder and the amount they are due per interest payment interval
             address account = bondHolders[i];
             uint256 interestPayment = balanceOf(account).mul(interestRate).div(INTEREST_DECIMALS);
-            interestClaimable[account] += interestPayment;
+
+            // calculate how many interest payments have passed since last payment
+            // NOTE: this should always be 1 if interest payments are done on-time, but this is a failsafe in case of a delay of more than one interest payment 
+            uint256 interestPaymentCount = (block.timestamp - lastInterestPayment) / interestPaymentInterval;
+            interestClaimable[account] += interestPayment * interestPaymentCount;
 
             emit InterestPaid(account, interestPayment);
 
