@@ -88,6 +88,13 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
 
         // Transfers 100% of the bonds to the address deploying this contract.
         _mint(msg.sender, maxSupply);
+
+        // Initialize the last interest payment to be current time
+        lastInterestPayment = block.timestamp;
+
+        // add the owner to the bond holder array and mapping
+        bondHolders.push(msg.sender);
+        bondHoldersIndices[msg.sender] = bondHolders.length;
     }
 
     function decimals() public view virtual override returns (uint8) {
@@ -131,6 +138,11 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
         interestClaimable[msg.sender] = 0;
 
         _transferInterest(msg.sender, interest);
+    }
+
+    // check value of interestClaimable
+    function checkInterest() public view returns (uint256) {
+        return interestClaimable[msg.sender];
     }
 
     // redeem bond par value after maturity
