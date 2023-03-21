@@ -13,8 +13,6 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
 
-    // decimals used for interest payments
-    uint256 public constant INTEREST_DECIMALS = 1e18;
     // bond maturity date
     uint256 public maturity;
     // par value of the bond
@@ -39,6 +37,9 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
     event InterestPaid(address indexed user, uint256 interest);
     // event emitted when interest is claimed by an address and officially transferred to them
     event InterestClaimed(address indexed user, uint256 interest);
+
+    // number of decimals for our token
+    uint8 private _decimals;
 
     // used to keep track of all bond holders
     mapping(address => uint256) private bondHoldersIndices;
@@ -65,7 +66,8 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
         uint256 _maturity,
         address _paymentToken,
         uint256 maxSupply,
-        uint256 _interestPaymentInterval
+        uint256 _interestPaymentInterval,
+        uint8 _decimalsVal
     ) ERC20(name, symbol) {
         require(_interestRate > 0, "Interest rate must be positive");
         require(_maturity > block.timestamp, "Maturity date must be in the future");
@@ -81,34 +83,44 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
         _setupRole(ADMIN_ROLE, msg.sender);
         _setupRole(ISSUER_ROLE, msg.sender);
 
+        // With decimals = 0, bonds are displayed in integer amounts only
+        _decimals = _decimalsVal;
+
         // Transfers 100% of the bonds to the address deploying this contract.
         _mint(msg.sender, maxSupply);
     }
+
+    function decimals() public view virtual override returns (uint8) {
+        return _decimals;
+    }
+
 
     // this is used to add those interest values to the interestClaimable mapping for users holding the bonds at the time of the interest payment
     // settle next round of interest payments if it's a valid time
     function interestPayment() public interestValid onlyRole(ISSUER_ROLE) {
 
+        // calculate how many interest payments have passed since last payment
+        // NOTE: this should always be 1 if interest payments are done on-time, but this is a failsafe in case of a delay of more than one interest payment 
+        uint256 interestPaymentCount = (block.timestamp - lastInterestPayment) / interestPaymentInterval;
+
+        // update the last time we updated interest claimable 
+        lastInterestPayment = block.timestamp;
+
         for (uint256 i = 0; i < bondHolders.length; i++) {
             // get the address of the bond holder and the amount they are due per interest payment interval
             address account = bondHolders[i];
-            uint256 interestPayment = balanceOf(account).mul(interestRate).div(INTEREST_DECIMALS);
+            uint256 addressInterestPayment = balanceOf(account).mul(par).div(interestRate);
 
-            // calculate how many interest payments have passed since last payment
-            // NOTE: this should always be 1 if interest payments are done on-time, but this is a failsafe in case of a delay of more than one interest payment 
-            uint256 interestPaymentCount = (block.timestamp - lastInterestPayment) / interestPaymentInterval;
-            interestClaimable[account] += interestPayment * interestPaymentCount;
+            interestClaimable[account] += addressInterestPayment * interestPaymentCount;
 
-            emit InterestPaid(account, interestPayment);
+            emit InterestPaid(account, addressInterestPayment);
 
             if (autoClaimInterest[account]) {
-                _transferInterest(account, interestPayment);
+                _transferInterest(account, addressInterestPayment);
                 interestClaimable[account] = 0;
             }
 
         }
-
-        lastInterestPayment = block.timestamp;
     }
 
     // used by a user to claim their current amount of interest claimable
