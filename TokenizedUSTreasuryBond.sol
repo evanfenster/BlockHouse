@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./../node_modules/@openzeppelin/contracts/access/AccessControl.sol";
+import "./../node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./../node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
     using SafeMath for uint256;
