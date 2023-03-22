@@ -38,9 +38,6 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
     // event emitted when interest is claimed by an address and officially transferred to them
     event InterestClaimed(address indexed user, uint256 interest);
 
-    // event emitted when the contract is funded with payment tokens
-    event ContractFunded(address indexed user, uint256 amount);
-
     // number of decimals for our token
     uint8 private _decimals;
 
@@ -159,13 +156,6 @@ contract TokenizedUSTreasuryBond is ERC20, AccessControl, ReentrancyGuard {
     // sets the user's auto-claim preference
     function setAutoClaimInterest(bool autoClaim) external {
         autoClaimInterest[msg.sender] = autoClaim;
-    }
-
-    // function to allow owner to fund the payment token into the contract
-    function fundPaymentToken(uint256 amount) external {
-        require(amount > 0, "Deposit amount must be greater than 0");
-        require(ERC20(paymentToken).transferFrom(msg.sender, address(this), amount), "Transfer failed");
-        emit ContractFunded(msg.sender, amount);
     }
 
     // returns true if the bond is mature
